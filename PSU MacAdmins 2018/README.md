@@ -1,4 +1,4 @@
-# MacAdmins Conference 2018 ad Penn State
+# MacAdmins Conference 2018 at Penn State
 
 ## Improve Your Printer Deployments
 

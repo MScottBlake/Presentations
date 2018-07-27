@@ -1,5 +1,6 @@
-# Improve Your Printer Deployments
-## MacAdmins Conference 2018 ad Penn State
+# MacAdmins Conference 2018 ad Penn State
+
+## Improve Your Printer Deployments
 
 * [Scripts](https://github.com/MScottBlake/Presentations/tree/master/PSU%20MacAdmins%202018/Scripts)
 * [Slides](https://github.com/MScottBlake/Presentations/blob/master/PSU%20MacAdmins%202018/Slides)

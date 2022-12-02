@@ -1,0 +1,62 @@
+AWSTemplateFormatVersion: 2010-09-09
+Transform: AWS::Serverless-2016-10-31
+
+Parameters:
+  STAGE:
+    Description: 'Required. The environment used. (e.g. dev, test, prod)'
+    Type: String
+    Default: dev
+    AllowedValues: 
+      - dev
+      - prod
+  GROUPNAME:
+    Description: 'Required. The name of an Advanced Search within Jamf Pro.'
+    Type: String
+  DEBUG:
+    Description: 'Optional. Enable debug logging.'
+    Type: String
+    Default: 'False'
+    AllowedValues:
+      - 'True'
+      - 'False'
+
+Resources:
+
+  SNSEncryptionReport:
+    Type: AWS::SNS::Topic
+    Properties:
+      Subscription:
+        - Protocol: email
+          Endpoint: 'user1@domain.com'
+        - Protocol: email
+          Endpoint: 'user2@domain.com'
+        - Protocol: email
+          Endpoint: 'user3@another.domain.com'
+
+  EncryptedComputersCount:
+    Type: AWS::Serverless::Function
+    Properties:
+      Runtime: python3.8
+      Handler: index.lambda_handler
+      CodeUri: ./src
+      Timeout: 60
+      Environment:
+        Variables:
+          STAGE: !Ref STAGE
+          GROUP_NAME: !Ref GROUPNAME
+          DEBUG: !Ref DEBUG
+          SNS_TOPIC_ARN: !Ref SNSEncryptionReport
+      Policies:
+        - SSMParameterReadPolicy:
+            ParameterName: !Sub ${STAGE}/JamfPro/Address
+        - SSMParameterReadPolicy:
+            ParameterName: !Sub ${STAGE}/JamfPro/Accts/EncryptionReport/*
+        - SNSPublishMessagePolicy:
+            TopicName: !GetAtt SNSEncryptionReport.TopicName
+      Events:
+        CronSchedule:
+          Type: Schedule
+          Properties:
+            # 8am ET (12 UTC) on 1st of each month
+            Schedule: cron(0 12 1 * ? *)
+            Enabled: True

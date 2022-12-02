@@ -1,0 +1,87 @@
+AWSTemplateFormatVersion: 2010-09-09
+Transform: AWS::Serverless-2016-10-31
+
+Parameters:
+  STAGE:
+    Description: "Required. The environment used. (e.g. dev, test, prod)"
+    Type: String
+    Default: dev
+    AllowedValues:
+      - dev
+      - prod
+  GROUPNAME:
+    Description: "Required. The name of an Advanced Search within Jamf Pro."
+    Type: String
+  DEBUG:
+    Description: "Optional. Enable debug logging."
+    Type: String
+    Default: "False"
+    AllowedValues:
+      - "True"
+      - "False"
+
+Resources:
+  LambdaRemanageComputer:
+    Type: AWS::Serverless::Function
+    Properties:
+      Runtime: python3.8
+      Handler: remanage.lambda_handler
+      CodeUri: ./src
+      Timeout: 10
+      Environment:
+        Variables:
+          STAGE: !Ref STAGE
+          DEBUG: !Ref DEBUG
+          SendToMicrosoftTeams_URL: !ImportValue SendToMicrosoftTeams-URL
+      Policies:
+        - SSMParameterReadPolicy:
+            ParameterName: !Sub ${STAGE}/JamfPro/Address
+        - SSMParameterReadPolicy:
+            ParameterName: !Sub ${STAGE}/JamfPro/Accts/RemanageComputers/*
+        - SSMParameterReadPolicy:
+            ParameterName: !Sub ${STAGE}/JamfPro/Webhooks/WVUAppleAdmins/AWS-Automation
+        - SQSSendMessagePolicy:
+            QueueName: !ImportValue SendToMicrosoftTeams-QueueName
+      Events:
+        SQSRemanageComputersEvent:
+          Type: SQS
+          Properties:
+            Queue: !GetAtt SQSRemanageComputers.Arn
+            BatchSize: 10
+            Enabled: true
+
+  SQSRemanageComputers:
+    Type: AWS::SQS::Queue
+
+  LambdaGetNonStaleComputers:
+    Type: AWS::Serverless::Function
+    Properties:
+      Runtime: python3.8
+      Handler: index.lambda_handler
+      CodeUri: ./src
+      Timeout: 5
+      Environment:
+        Variables:
+          STAGE: !Ref STAGE
+          GROUP_NAME: !Ref GROUPNAME
+          DEBUG: !Ref DEBUG
+          SQS_QUEUE_URL: !Ref SQSRemanageComputers
+      Policies:
+        - SSMParameterReadPolicy:
+            ParameterName: !Sub ${STAGE}/JamfPro/Address
+        - SSMParameterReadPolicy:
+            ParameterName: !Sub ${STAGE}/JamfPro/Accts/RemanageComputers/*
+        - SQSSendMessagePolicy:
+            QueueName: !GetAtt SQSRemanageComputers.QueueName
+      Tags:
+        wvu:portfolio: em
+        wvu:zone: !Ref STAGE
+        wvu:tagVersion: 20190606
+        wvu:em:service: JamfPro
+      Events:
+        CronSchedule:
+          Type: Schedule
+          Properties:
+            # 2am ET (6 UTC) everyday +/-1 hour due to DaylightSavings
+            Schedule: cron(0 6 * * ? *)
+            Enabled: True

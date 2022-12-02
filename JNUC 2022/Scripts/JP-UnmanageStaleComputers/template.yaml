@@ -1,0 +1,82 @@
+AWSTemplateFormatVersion: 2010-09-09
+Transform: AWS::Serverless-2016-10-31
+
+Parameters:
+  STAGE:
+    Description: 'Required. The environment used. (e.g. dev, test, prod)'
+    Type: String
+    Default: dev
+    AllowedValues: 
+      - dev
+      - prod
+  GROUPNAME:
+    Description: 'Required. The name of an Advanced Search within Jamf Pro.'
+    Type: String
+  DEBUG:
+    Description: 'Optional. Enable debug logging.'
+    Type: String
+    Default: 'False'
+    AllowedValues:
+      - 'True'
+      - 'False'
+
+Resources:
+  UnmanageComputer:
+    Type: AWS::Serverless::Function
+    Properties:
+      Runtime: python3.8
+      Handler: unmanage.lambda_handler
+      CodeUri: ./src
+      Timeout: 10
+      Environment:
+        Variables:
+          STAGE: !Ref STAGE
+          DEBUG: !Ref DEBUG
+          SendToTeams_URL: !ImportValue SendToTeams-URL
+      Policies:
+        - SSMParameterReadPolicy:
+            ParameterName: !Sub ${STAGE}/JamfPro/Address
+        - SSMParameterReadPolicy:
+            ParameterName: !Sub ${STAGE}/JamfPro/Accts/UnmanageComputers/*
+        - SSMParameterReadPolicy:
+            ParameterName: !Sub ${STAGE}/Webhooks/MSTeams/TeamName/ChannelName
+        - SQSSendMessagePolicy:
+            QueueName: !ImportValue SendToTeams-QueueName
+      Events:
+        SQSEvent:
+          Type: SQS
+          Properties:
+            Queue: !GetAtt UnmanageComputers.Arn
+            BatchSize: 10
+            Enabled: true
+
+  UnmanageComputers:
+    Type: AWS::SQS::Queue
+
+  GetStaleComputers:
+    Type: AWS::Serverless::Function
+    Properties:
+      Runtime: python3.8
+      Handler: index.lambda_handler
+      CodeUri: ./src
+      Timeout: 30
+      Environment:
+        Variables:
+          STAGE: !Ref STAGE
+          GROUP_NAME: !Ref GROUPNAME
+          DEBUG: !Ref DEBUG
+          SQS_QUEUE_URL: !Ref UnmanageComputers
+      Policies:
+        - SSMParameterReadPolicy:
+            ParameterName: !Sub ${STAGE}/JamfPro/Address
+        - SSMParameterReadPolicy:
+            ParameterName: !Sub ${STAGE}/JamfPro/Accts/UnmanageComputers/*
+        - SQSSendMessagePolicy:
+            QueueName: !GetAtt UnmanageComputers.QueueName
+      Events:
+        CronSchedule:
+          Type: Schedule
+          Properties:
+            # 7am ET (11 UTC) on 1st of each month
+            Schedule: cron(0 11 1 * ? *)
+            Enabled: True

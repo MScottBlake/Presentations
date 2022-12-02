@@ -1,0 +1,33 @@
+AWSTemplateFormatVersion: 2010-09-09
+Transform: AWS::Serverless-2016-10-31
+
+Resources:
+  LambdaSendToTeams:
+    Type: AWS::Serverless::Function
+    Properties:
+      Runtime: python3.8
+      Handler: index.lambda_handler
+      CodeUri: ./src
+      Timeout: 5
+      Events:
+        SQSEvent:
+          Type: SQS
+          Properties:
+            Queue: !GetAtt SQSSendToTeams.Arn
+            BatchSize: 10
+            Enabled: true
+
+  SQSSendToTeams:
+    Type: AWS::SQS::Queue
+
+Outputs:
+  SQSQueueName:
+    Description: Name of the SQS queue
+    Value: !GetAtt SQSSendToTeams.QueueName
+    Export:
+      Name: SendToTeams-QueueName
+  SQSURL:
+    Description: URL of the SQS queue
+    Value: !Ref SQSSendToTeams
+    Export:
+      Name: SendToTeams-URL

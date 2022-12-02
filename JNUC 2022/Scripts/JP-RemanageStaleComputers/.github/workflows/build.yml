@@ -1,0 +1,18 @@
+# This workflow will perform sam validate and sam build tasks.
+# For more information see: https://github.com/aws-samples/aws-sam-github-actions-example
+
+name: Build
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  sam-validate-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: SAM Build
+        run: |
+          sam build

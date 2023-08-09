@@ -4,4 +4,4 @@
 
 * [Scripts](Scripts)
 * [Slides](Slides)
-* Video
+* [Video](https://www.youtube.com/watch?v=38ayowbtW2o&list=PLRUboZUQxbyWzc2LtGvCHpWz1dcoSSR5s&index=25)

@@ -4,3 +4,4 @@
 * [PSU MacAdmins 2018](PSU%20MacAdmins%202018) - Improve Your Printer Deployments
 * [JNUC 2022](JNUC%202022) - Serverless Workflows for MacAdmins
 * [PSU MacAdmins 2023](PSU%20MacAdmins%202023) - Processing Webhooks with Terraform and AWS
+* [PSU MacAdmins 2025](PSU%20MacAdmins%202025) - Celebrating AutoPkg with a new Runner
